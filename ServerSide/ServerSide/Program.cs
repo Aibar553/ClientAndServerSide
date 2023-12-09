@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -19,6 +19,15 @@ class Server
 
             Console.WriteLine("Server is running. Waiting for connections...");
 
+            // Start a thread to listen for key press to stop the server
+            Thread keyPressThread = new Thread(() =>
+            {
+                Console.WriteLine("Press any key to stop the server.");
+                Console.ReadKey();
+                Environment.Exit(0);
+            });
+            keyPressThread.Start();
+
             while (true)
             {
                 TcpClient client = server.AcceptTcpClient();
@@ -36,6 +45,12 @@ class Server
                 string acknowledgment = "Message received on the server.";
                 data = Encoding.Unicode.GetBytes(acknowledgment);
                 stream.Write(data, 0, data.Length);
+
+                if(message.ToLower() == "exit")
+                {
+                    Console.WriteLine("Client requested to exit. Closing connection...");
+                    break;
+                }
 
                 // Wait for acknowledgment from the client
                 bytesRead = stream.Read(data, 0, data.Length);
