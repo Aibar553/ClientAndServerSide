@@ -30,15 +30,40 @@ class UdpClientApp
             if (message.Equals("Exit", StringComparison.OrdinalIgnoreCase))
                 break;
 
-            // Receive confirmation from the server
-            var receiveResult = await udpClient.ReceiveAsync();
-            var confirmationMessage = Encoding.UTF8.GetString(receiveResult.Buffer);
-            Console.WriteLine($"Server confirmation: {confirmationMessage}");
+            if (message.Equals("List", StringComparison.OrdinalIgnoreCase))
+            {
+                // Request unread messages from the server
+                await ReceiveUnreadMessagesAsync();
+            }
+            else
+            {
+                // Receive confirmation from the server
+                var receiveResult = await udpClient.ReceiveAsync();
+                var confirmationMessage = Encoding.UTF8.GetString(receiveResult.Buffer);
+                Console.WriteLine($"Server confirmation: {confirmationMessage}");
+            }
         }
 
         Console.WriteLine("Client stopped.");
     }
+
+    private async Task ReceiveUnreadMessagesAsync()
+    {
+        Console.WriteLine("Requesting unread messages from the server...");
+
+        while (true)
+        {
+            var receiveResult = await udpClient.ReceiveAsync();
+
+            var confirmationMessage = Encoding.UTF8.GetString(receiveResult.Buffer);
+            Console.WriteLine($"Server: {confirmationMessage}");
+
+            if (!confirmationMessage.StartsWith("Unread message:", StringComparison.OrdinalIgnoreCase))
+                break;
+        }
+    }
 }
+
 class Program
 {
     static async Task Main()
