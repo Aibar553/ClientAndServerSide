@@ -8,11 +8,13 @@ class UdpServer
 {
     private readonly UdpClient udpClient;
     private readonly CancellationTokenSource cts;
+    private readonly List<string> unreadMessages;
 
     public UdpServer(int port)
     {
         udpClient = new UdpClient(port);
         cts = new CancellationTokenSource();
+        unreadMessages = new List<string>();
     }
 
     public async Task StartAsync()
@@ -42,13 +44,7 @@ class UdpServer
                 var receivedMessage = Encoding.UTF8.GetString(receiveResult.Buffer);
                 Console.WriteLine($"Received message: {receivedMessage} from {receiveResult.RemoteEndPoint}");
 
-                // Send confirmation back to the client
-                var confirmationMessage = $"Server received: {receivedMessage}";
-                var confirmationBytes = Encoding.UTF8.GetBytes(confirmationMessage);
-                await udpClient.SendAsync(confirmationBytes, confirmationBytes.Length, receiveResult.RemoteEndPoint);
-
-                if (receivedMessage.Equals("Exit", StringComparison.OrdinalIgnoreCase))
-                    break;
+                ProcessMessage(receivedMessage, receiveResult.RemoteEndPoint);
             }
         }
         catch (ObjectDisposedException)
@@ -57,6 +53,52 @@ class UdpServer
         }
 
         Console.WriteLine("Server stopped.");
+    }
+
+    private void ProcessMessage(string message, IPEndPoint clientEndpoint)
+    {
+        if (message.Equals("Exit", StringComparison.OrdinalIgnoreCase))
+        {
+            // Handle client exit
+            Console.WriteLine($"Client at {clientEndpoint} has disconnected.");
+        }
+        else if (message.Equals("List", StringComparison.OrdinalIgnoreCase))
+        {
+            // Handle List message type
+            SendUnreadMessages(clientEndpoint);
+        }
+        else
+        {
+            // Handle regular message
+            Console.WriteLine($"Received message: {message} from {clientEndpoint}");
+            unreadMessages.Add(message);
+
+            // Send confirmation back to the client
+            SendConfirmation("Server received: " + message, clientEndpoint);
+        }
+    }
+
+    private void SendConfirmation(string confirmationMessage, IPEndPoint clientEndpoint)
+    {
+        var confirmationBytes = Encoding.UTF8.GetBytes(confirmationMessage);
+        udpClient.Send(confirmationBytes, confirmationBytes.Length, clientEndpoint);
+    }
+
+    private void SendUnreadMessages(IPEndPoint clientEndpoint)
+    {
+        if (unreadMessages.Count > 0)
+        {
+            foreach (var unreadMessage in unreadMessages)
+            {
+                SendConfirmation("Unread message: " + unreadMessage, clientEndpoint);
+            }
+            Console.WriteLine($"Sent {unreadMessages.Count} unread messages to {clientEndpoint}");
+            unreadMessages.Clear();
+        }
+        else
+        {
+            SendConfirmation("No unread messages", clientEndpoint);
+        }
     }
 }
 
