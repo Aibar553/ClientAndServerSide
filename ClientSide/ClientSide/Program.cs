@@ -1,9 +1,9 @@
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Net;
 using System.Text;
 
 
-class UdpClientApp
+public class UdpClientApp
 {
     private readonly UdpClient udpClient;
     private readonly IPEndPoint serverEndpoint;
